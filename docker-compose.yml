@@ -12,6 +12,7 @@ services:
     image: redis
 
   web:
+    build: .
     image: openzaak/open-zaak
     environment:
       - DJANGO_SETTINGS_MODULE=openzaak.conf.docker
@@ -20,7 +21,15 @@ services:
       - ALLOWED_HOSTS=*
       - CACHE_DEFAULT=redis:6379/0
       - CACHE_AXES=redis:6379/0
-    ports:
-      - 8000:8000
+      - SUBPATH=/openzaak
     depends_on:
       - db
+
+  nginx:
+    image: nginx
+    volumes:
+      - ./default.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "8000:80"
+    depends_on:
+      - web
