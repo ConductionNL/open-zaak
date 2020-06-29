@@ -17,7 +17,6 @@ from vng_api_common.tests import generate_jwt_auth, reverse
 from zds_client.tests.mocks import MockClient
 
 from openzaak.accounts.models import User
-from openzaak.tests.utils import mock_service_oas_get
 
 
 class JWTAuthMixin:
@@ -156,6 +155,8 @@ class MockSchemasMixin:
     mocker_attr = "adapter"
 
     def setUp(self):
+        from openzaak.tests.utils import mock_service_oas_get
+
         super().setUp()
 
         mocker = getattr(self, self.mocker_attr)

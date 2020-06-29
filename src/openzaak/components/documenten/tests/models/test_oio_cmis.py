@@ -1,5 +1,5 @@
 from django.db import IntegrityError
-from django.test import override_settings, tag
+from django.test import TestCase, override_settings, tag
 
 from vng_api_common.tests import reverse
 
@@ -12,7 +12,7 @@ from openzaak.components.zaken.tests.factories import (
     ZaakInformatieObjectFactory,
 )
 from openzaak.utils.query import QueryBlocked
-from openzaak.utils.tests import APICMISTestCase
+from openzaak.utils.tests import CMISMixin
 
 from ...models import ObjectInformatieObject
 from ..factories import (
@@ -24,13 +24,13 @@ from ..utils import serialise_eio
 
 @tag("oio", "cmis")
 @override_settings(CMIS_ENABLED=True)
-class OIOCMISTests(APICMISTestCase):
+class OIOCMISTests(CMISMixin, TestCase):
     def setUp(self) -> None:
+        super().setUp()
+
         self.eio = EnkelvoudigInformatieObjectFactory.create()
         self.eio_url = f"http://openzaak.nl{reverse(self.eio)}"
         self.eio_response = serialise_eio(self.eio, self.eio_url)
-
-        return super().setUp()
 
     def test_not_both_zaak_besluit(self):
         zaak = ZaakFactory.create()
@@ -89,7 +89,7 @@ class OIOCMISTests(APICMISTestCase):
 
 @tag("cmis")
 @override_settings(CMIS_ENABLED=True)
-class BlockChangeTestCase(APICMISTestCase):
+class BlockChangeTestCase(CMISMixin, TestCase):
     def setUp(self) -> None:
         super().setUp()
 
