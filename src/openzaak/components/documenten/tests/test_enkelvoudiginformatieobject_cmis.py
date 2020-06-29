@@ -403,6 +403,7 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(JWTAuthMixin, APICMISTes
     list_url = reverse_lazy(EnkelvoudigInformatieObject)
     heeft_alle_autorisaties = True
 
+    @tag("pickme")
     def test_eio_update(self):
         eio = EnkelvoudigInformatieObjectFactory.create(
             beschrijving="beschrijving1", informatieobjecttype__concept=False
@@ -424,8 +425,8 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(JWTAuthMixin, APICMISTes
             }
         )
 
-        for i in ["integriteit", "ondertekening"]:
-            eio_data.pop(i)
+        del eio_data["integriteit"]
+        del eio_data["ondertekening"]
 
         response = self.client.put(eio_url, eio_data)
 
@@ -435,10 +436,19 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(JWTAuthMixin, APICMISTes
         self.assertEqual(response_data["beschrijving"], "beschrijving2")
 
         # The private working copy and the original count as 2 documents in Alfresco
-        self.client.post(f"{eio_url}/unlock", {"lock": lock})
-        latest_version = EnkelvoudigInformatieObject.objects.get()
-        self.assertEqual(latest_version.versie, 200)
+        eios = EnkelvoudigInformatieObject.objects.filter(uuid=eio.uuid).order_by(
+            "-versie"
+        )
+
+        self.assertEqual(len(eios), 2)
+
+        latest_version = eios[0]
+        self.assertEqual(latest_version.versie, 2)
         self.assertEqual(latest_version.beschrijving, "beschrijving2")
+
+        first_version = eios[1]
+        self.assertEqual(first_version.versie, 1)
+        self.assertEqual(first_version.beschrijving, "beschrijving1")
 
     def test_eio_partial_update(self):
         eio = EnkelvoudigInformatieObjectFactory.create(beschrijving="beschrijving1")
