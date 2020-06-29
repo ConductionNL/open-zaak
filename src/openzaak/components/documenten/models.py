@@ -30,7 +30,7 @@ from .managers import (
     GebruiksrechtenAdapterManager,
     ObjectInformatieObjectAdapterManager,
 )
-from .query import InformatieobjectQuerySet
+from .query.django import InformatieobjectQuerySet
 from .utils import private_media_storage_cmis
 from .validators import validate_status
 

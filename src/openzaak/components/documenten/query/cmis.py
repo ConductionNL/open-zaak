@@ -21,13 +21,13 @@ from rest_framework.request import Request
 from vng_api_common.constants import VertrouwelijkheidsAanduiding
 from vng_api_common.tests import reverse
 
-from ..catalogi.models.informatieobjecttype import InformatieObjectType
-from .query import (
+from ...catalogi.models.informatieobjecttype import InformatieObjectType
+from ..utils import CMISStorageFile, eio_version_to_cmis
+from .django import (
     InformatieobjectQuerySet,
     InformatieobjectRelatedQuerySet,
     ObjectInformatieObjectQuerySet,
 )
-from .utils import CMISStorageFile, eio_version_to_cmis
 
 logger = logging.getLogger(__name__)
 
@@ -399,10 +399,6 @@ class CMISGebruiksrechtenIterable(BaseIterable):
 # --------------- Querysets --------------------------
 
 
-class DjangoQuerySet(InformatieobjectQuerySet):
-    pass
-
-
 class CMISQuerySet(InformatieobjectQuerySet):
     """
     Find more information about the drc-cmis adapter on github here.
@@ -633,7 +629,7 @@ class GebruiksrechtenQuerySet(InformatieobjectRelatedQuerySet):
         return clone
 
     def create(self, **kwargs):
-        from .models import EnkelvoudigInformatieObject
+        from ..models import EnkelvoudigInformatieObject
 
         cmis_gebruiksrechten = self.cmis_client.create_cmis_gebruiksrechten(data=kwargs)
 
@@ -840,7 +836,7 @@ def format_fields(obj, obj_fields):
 
 
 def cmis_doc_to_django_model(cmis_doc):
-    from .models import (
+    from ..models import (
         EnkelvoudigInformatieObject,
         EnkelvoudigInformatieObjectCanonical,
     )
@@ -897,7 +893,7 @@ def cmis_doc_to_django_model(cmis_doc):
 
 def cmis_gebruiksrechten_to_django(cmis_gebruiksrechten):
 
-    from .models import EnkelvoudigInformatieObjectCanonical, Gebruiksrechten
+    from ..models import EnkelvoudigInformatieObjectCanonical, Gebruiksrechten
 
     canonical = EnkelvoudigInformatieObjectCanonical()
 
@@ -918,7 +914,7 @@ def cmis_gebruiksrechten_to_django(cmis_gebruiksrechten):
 
 def cmis_oio_to_django(cmis_oio):
 
-    from .models import EnkelvoudigInformatieObjectCanonical, ObjectInformatieObject
+    from ..models import EnkelvoudigInformatieObjectCanonical, ObjectInformatieObject
 
     canonical = EnkelvoudigInformatieObjectCanonical()
 
