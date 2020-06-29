@@ -416,7 +416,9 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(JWTAuthMixin, APICMISTes
         eio_response = self.client.get(eio_url)
         eio_data = eio_response.data
 
-        lock = self.client.post(f"{eio_url}/lock").data["lock"]
+        lock_response = self.client.post(f"{eio_url}/lock")
+        self.assertEqual(lock_response.status_code, status.HTTP_200_OK)
+        lock = lock_response.data["lock"]
         eio_data.update(
             {
                 "beschrijving": "beschrijving2",

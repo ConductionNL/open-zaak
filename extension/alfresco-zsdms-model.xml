@@ -241,6 +241,15 @@
                         <tokenised>TRUE</tokenised>
                     </index>
                 </property>
+                <property name="drc:document__versie">
+                    <title>DRC - Document - Versie</title>
+                    <type>d:long</type>
+                    <mandatory>true</mandatory>
+                    <index enabled="true">
+                        <tokenised>FALSE</tokenised>
+                        <facetable>false</facetable>
+                    </index>
+                </property>
                 <property name="drc:document__creatiedatum">
                     <title>DRC - Document - Creatiedatum</title>
                     <type>d:date</type>
@@ -315,6 +324,14 @@
                         <tokenised>TRUE</tokenised>
                     </index>
                 </property>
+                <property name="drc:document__lock">
+                    <title>DRC - Document - Lock</title>
+                    <type>d:text</type>
+                    <mandatory>false</mandatory>
+                    <index enabled="false">
+                        <tokenised>TRUE</tokenised>
+                    </index>
+                </property>
             </properties>
             <associations/>
             <overrides/>
@@ -356,7 +373,7 @@
                     <index enabled="false">
                         <tokenised>TRUE</tokenised>
                     </index>
-                </property>                
+                </property>
             </properties>
             <associations/>
             <overrides/>
@@ -398,7 +415,7 @@
                     <index enabled="true">
                         <tokenised>TRUE</tokenised>
                     </index>
-                </property>                
+                </property>
             </properties>
             <associations/>
             <overrides/>

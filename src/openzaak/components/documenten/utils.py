@@ -58,9 +58,7 @@ class CMISStorage(Storage):
 
     def _read(self, uuid_version):
         uuid, wanted_version = self._get_uuid_and_version(uuid_version)
-        cmis_doc = self._client.get_cmis_document(
-            identification=uuid, via_identification=False, filters=None
-        )
+        cmis_doc = self._client.get_cmis_document(uuid=uuid, filters=None)
 
         cmis_doc = self._get_correct_doc_version(cmis_doc, wanted_version)
 
@@ -114,11 +112,3 @@ class PrivateMediaStorageWithCMIS(LazyObject):
 
 
 private_media_storage_cmis = PrivateMediaStorageWithCMIS()
-
-
-def eio_version_to_cmis(version):
-    """
-    Convert an Open Zaak EnkelvoudigInformatieObject `versie` number to its
-    corresponding version number for CMIS
-    """
-    return Decimal(version) / 100

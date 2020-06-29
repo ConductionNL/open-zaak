@@ -1,7 +1,7 @@
 import copy
 import datetime
 import logging
-from decimal import Decimal, InvalidOperation
+import uuid
 from typing import List, Optional, Tuple
 
 from django.conf import settings
@@ -22,7 +22,7 @@ from vng_api_common.constants import VertrouwelijkheidsAanduiding
 from vng_api_common.tests import reverse
 
 from ...catalogi.models.informatieobjecttype import InformatieObjectType
-from ..utils import CMISStorageFile, eio_version_to_cmis
+from ..utils import CMISStorageFile
 from .django import (
     InformatieobjectQuerySet,
     InformatieobjectRelatedQuerySet,
@@ -55,6 +55,7 @@ class CMISDocumentIterable(BaseIterable):
         filters = self._check_for_pk_filter(queryset._cmis_query)
 
         lhs, rhs = self._normalize_filters(filters)
+
         documents = queryset.cmis_client.query(self.return_type, lhs, rhs)
 
         if self._needs_older_version(filters):
@@ -85,9 +86,13 @@ class CMISDocumentIterable(BaseIterable):
         for key, value in filters:
             name = mapper(key, type="document")
 
+            # cmis:versionSeriesId is not queryable in Alfresco, nor is alfcmis:nodeRef
             if key == "uuid":
+                # The actual objectId is in the format {cmis:versionSeriesId};{cmis:versionLabel},
+                # but it seems that Alfresco _always_ returns the latest version (that's fine),
+                # and you don't actually need to include the ;{cmis:versionLabel} part.
+                # This effectively turns our query into "... WHERE cmis:objectId = '<some-uuid>'"
                 name = "cmis:objectId"
-                value = f"workspace://SpacesStore/{value};1.0"
             elif key == "versie":
                 # The older versions can be accessed once the latest document is available
                 continue
@@ -473,6 +478,9 @@ class CMISQuerySet(InformatieobjectQuerySet):
         return unified_queryset
 
     def create(self, **kwargs):
+        # we don't use this structure
+        kwargs.pop("canonical")
+
         # The url needs to be added manually because the drc_cmis uses the 'omshrijving' as the value
         # of the informatie object type
         kwargs["informatieobjecttype"] = get_object_url(
@@ -491,6 +499,7 @@ class CMISQuerySet(InformatieobjectQuerySet):
                 content=kwargs.get("inhoud"),
             )
         except exceptions.DocumentDoesNotExistError:
+            kwargs.setdefault("versie", 1)
             new_cmis_document = self.cmis_client.create_document(
                 identification=kwargs.get("identificatie"),
                 data=kwargs,
@@ -541,8 +550,6 @@ class CMISQuerySet(InformatieobjectQuerySet):
                     )
             elif key == "creatiedatum__isnull":
                 filters["creatiedatum"] = ""
-            elif key_bits[0] == "versie":
-                filters[key_bits[0]] = eio_version_to_cmis(value)
             else:
                 filters[key_bits[0]] = value
 
@@ -817,50 +824,45 @@ def format_fields(obj, obj_fields):
     Ensuring the charfields are not null and dates are in the correct format
     """
     for field in obj_fields:
+        _value = getattr(obj, field.name, None)
         if isinstance(field, fields.CharField) or isinstance(field, fields.TextField):
-            if getattr(obj, field.name) is None:
+            if _value is None:
                 setattr(obj, field.name, "")
         elif isinstance(field, fields.DateTimeField):
-            date_value = getattr(obj, field.name)
-            if isinstance(date_value, int):
-                setattr(
-                    obj, field.name, convert_timestamp_to_django_datetime(date_value)
-                )
+            if isinstance(_value, int):
+                setattr(obj, field.name, convert_timestamp_to_django_datetime(_value))
         elif isinstance(field, fields.DateField):
-            date_value = getattr(obj, field.name)
-            if isinstance(date_value, int):
-                converted_datetime = convert_timestamp_to_django_datetime(date_value)
+            if isinstance(_value, int):
+                converted_datetime = convert_timestamp_to_django_datetime(_value)
                 setattr(obj, field.name, converted_datetime.date())
 
     return obj
 
 
-def cmis_doc_to_django_model(cmis_doc):
+def cmis_doc_to_django_model(cmis_doc: Document):
     from ..models import (
         EnkelvoudigInformatieObject,
         EnkelvoudigInformatieObjectCanonical,
     )
 
+    # get the pwc and continue to operate on the PWC
+    if cmis_doc.isVersionSeriesCheckedOut:
+        cmis_doc = cmis_doc.get_private_working_copy()
+        assert cmis_doc.isPrivateWorkingCopy, "PWC must be the actual PWC object"
+
     # The if the document is locked, the lock_id is stored in versionSeriesCheckedOutId
     canonical = EnkelvoudigInformatieObjectCanonical()
-    canonical.lock = cmis_doc.versionSeriesCheckedOutId or ""
-
-    versie = cmis_doc.versie
-    try:
-        int_versie = int(Decimal(versie) * 100)
-    except ValueError:
-        int_versie = 0
-    except InvalidOperation:
-        int_versie = 0
+    canonical.lock = cmis_doc.lock or ""
 
     # Ensuring the charfields are not null and dates are in the correct format
     cmis_doc = format_fields(cmis_doc, EnkelvoudigInformatieObject._meta.get_fields())
 
     # Setting up a local file with the content of the cmis document
-    uuid_with_version = cmis_doc.versionSeriesId + ";" + cmis_doc.versie
-    content_file = CMISStorageFile(uuid_version=uuid_with_version,)
+    uuid_with_version = f"{cmis_doc.versionSeriesId};{cmis_doc.versie}"
+    content_file = CMISStorageFile(uuid_version=uuid_with_version)
 
     document = EnkelvoudigInformatieObject(
+        uuid=uuid.UUID(cmis_doc.uuid),
         auteur=cmis_doc.auteur,
         begin_registratie=cmis_doc.begin_registratie,
         beschrijving=cmis_doc.beschrijving,
@@ -868,7 +870,6 @@ def cmis_doc_to_django_model(cmis_doc):
         bronorganisatie=cmis_doc.bronorganisatie,
         creatiedatum=cmis_doc.creatiedatum,
         formaat=cmis_doc.formaat,
-        # id=cmis_doc.versionSeriesId,
         canonical=canonical,
         identificatie=cmis_doc.identificatie,
         indicatie_gebruiksrecht=cmis_doc.indicatie_gebruiksrecht,
@@ -882,8 +883,7 @@ def cmis_doc_to_django_model(cmis_doc):
         status=cmis_doc.status,
         taal=cmis_doc.taal,
         titel=cmis_doc.titel,
-        uuid=cmis_doc.versionSeriesId,
-        versie=int_versie,
+        versie=cmis_doc.versie,
         vertrouwelijkheidaanduiding=cmis_doc.vertrouwelijkheidaanduiding,
         verzenddatum=cmis_doc.verzenddatum,
     )
