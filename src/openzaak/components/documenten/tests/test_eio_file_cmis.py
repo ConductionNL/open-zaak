@@ -5,9 +5,8 @@ import base64
 from datetime import date
 from urllib.parse import urlparse
 
-from django.test import override_settings
+from django.test import override_settings, tag
 
-from privates.test import temp_private_root
 from rest_framework import status
 from vng_api_common.constants import VertrouwelijkheidsAanduiding
 from vng_api_common.tests import reverse
@@ -23,10 +22,8 @@ from .factories import (
 from .utils import get_operation_url
 
 
-@override_settings(
-    SENDFILE_BACKEND="django_sendfile.backends.simple", CMIS_ENABLED=True
-)
-@temp_private_root()
+@tag("cmis")
+@override_settings(CMIS_ENABLED=True)
 class US39TestCase(JWTAuthMixin, APICMISTestCase):
 
     heeft_alle_autorisaties = True

@@ -1,9 +1,8 @@
 import uuid
 from base64 import b64encode
 
-from django.test import override_settings
+from django.test import override_settings, tag
 
-from privates.test import temp_private_root
 from rest_framework import status
 from vng_api_common.constants import ComponentTypes
 from vng_api_common.tests import get_validation_errors, reverse
@@ -17,7 +16,7 @@ from .factories import EnkelvoudigInformatieObjectFactory
 from .utils import get_operation_url
 
 
-@temp_private_root()
+@tag("cmis")
 @override_settings(CMIS_ENABLED=True)
 class EioLockAPITests(JWTAuthMixin, APICMISTestCase):
 
@@ -150,6 +149,7 @@ class EioLockAPITests(JWTAuthMixin, APICMISTestCase):
         self.assertNotIn("lock", response.data)
 
 
+@tag("cmis")
 @override_settings(CMIS_ENABLED=True)
 class EioUnlockAPITests(JWTAuthMixin, APICMISTestCase):
 

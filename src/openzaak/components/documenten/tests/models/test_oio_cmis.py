@@ -22,7 +22,7 @@ from ..factories import (
 from ..utils import serialise_eio
 
 
-@tag("oio")
+@tag("oio", "cmis")
 @override_settings(CMIS_ENABLED=True)
 class OIOCMISTests(APICMISTestCase):
     def setUp(self) -> None:
@@ -46,7 +46,7 @@ class OIOCMISTests(APICMISTestCase):
             ObjectInformatieObject.objects.create(informatieobject=self.eio_url)
 
     def test_zio_creates_oio(self):
-        self.adapter.register_uri("GET", self.eio_url, json=self.eio_response)
+        self.adapter.get(self.eio_url, json=self.eio_response)
         zio = ZaakInformatieObjectFactory.create(informatieobject=self.eio_url)
         oio = ObjectInformatieObject.objects.get()
 
@@ -56,7 +56,7 @@ class OIOCMISTests(APICMISTestCase):
         self.assertEqual(oio.object, zio.zaak)
 
     def test_bio_creates_oio(self):
-        self.adapter.register_uri("GET", self.eio_url, json=self.eio_response)
+        self.adapter.get(self.eio_url, json=self.eio_response)
         bio = BesluitInformatieObjectFactory.create(informatieobject=self.eio_url)
 
         oio = ObjectInformatieObject.objects.get()
@@ -67,7 +67,7 @@ class OIOCMISTests(APICMISTestCase):
         self.assertEqual(oio.object, bio.besluit)
 
     def test_zio_delete_oio(self):
-        self.adapter.register_uri("GET", self.eio_url, json=self.eio_response)
+        self.adapter.get(self.eio_url, json=self.eio_response)
         zio = ZaakInformatieObjectFactory.create(informatieobject=self.eio_url)
 
         self.assertEqual(ObjectInformatieObject.objects.count(), 1)
@@ -77,7 +77,7 @@ class OIOCMISTests(APICMISTestCase):
         self.assertEqual(ObjectInformatieObject.objects.count(), 0)
 
     def test_bio_delete_oio(self):
-        self.adapter.register_uri("GET", self.eio_url, json=self.eio_response)
+        self.adapter.get(self.eio_url, json=self.eio_response)
         bio = BesluitInformatieObjectFactory.create(informatieobject=self.eio_url)
 
         self.assertEqual(ObjectInformatieObject.objects.count(), 1)
@@ -87,6 +87,7 @@ class OIOCMISTests(APICMISTestCase):
         self.assertEqual(ObjectInformatieObject.objects.count(), 0)
 
 
+@tag("cmis")
 @override_settings(CMIS_ENABLED=True)
 class BlockChangeTestCase(APICMISTestCase):
     def setUp(self) -> None:
@@ -96,7 +97,7 @@ class BlockChangeTestCase(APICMISTestCase):
         eio_url = f"http://openzaak.nl{reverse(eio)}"
         eio_response = serialise_eio(eio, eio_url)
 
-        self.adapter.register_uri("GET", eio_url, json=eio_response)
+        self.adapter.get(eio_url, json=eio_response)
         ZaakInformatieObjectFactory.create(informatieobject=eio_url)
         self.oio = ObjectInformatieObject.objects.get()
 

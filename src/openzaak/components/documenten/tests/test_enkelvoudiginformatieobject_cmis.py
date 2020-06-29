@@ -6,7 +6,6 @@ from django.test import override_settings, tag
 from django.utils import timezone
 
 from freezegun import freeze_time
-from privates.test import temp_private_root
 from rest_framework import status
 from vng_api_common.tests import get_validation_errors, reverse, reverse_lazy
 
@@ -24,8 +23,8 @@ from .utils import (
 )
 
 
+@tag("cmis")
 @freeze_time("2018-06-27 12:12:12")
-@temp_private_root()
 @override_settings(CMIS_ENABLED=True)
 class EnkelvoudigInformatieObjectAPITests(JWTAuthMixin, APICMISTestCase):
 
@@ -398,9 +397,8 @@ class EnkelvoudigInformatieObjectAPITests(JWTAuthMixin, APICMISTestCase):
         self.assertEqual(error["code"], "invalid")
 
 
-@override_settings(
-    SENDFILE_BACKEND="django_sendfile.backends.simple", CMIS_ENABLED=True
-)
+@tag("cmis")
+@override_settings(CMIS_ENABLED=True)
 class EnkelvoudigInformatieObjectVersionHistoryAPITests(JWTAuthMixin, APICMISTestCase):
     list_url = reverse_lazy(EnkelvoudigInformatieObject)
     heeft_alle_autorisaties = True
@@ -634,6 +632,7 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(JWTAuthMixin, APICMISTes
         self.assertEqual(response_download.getvalue(), b"inhoud1")
 
 
+@tag("cmis")
 @override_settings(CMIS_ENABLED=True)
 class EnkelvoudigInformatieObjectPaginationAPITests(JWTAuthMixin, APICMISTestCase):
     list_url = reverse_lazy(EnkelvoudigInformatieObject)
@@ -665,8 +664,7 @@ class EnkelvoudigInformatieObjectPaginationAPITests(JWTAuthMixin, APICMISTestCas
         self.assertIsNone(response_data["next"])
 
 
-@tag("external-urls")
-@temp_private_root()
+@tag("external-urls", "cmis")
 @override_settings(ALLOWED_HOSTS=["testserver"], CMIS_ENABLED=True)
 class InformatieobjectCreateExternalURLsTests(JWTAuthMixin, APICMISTestCase):
     heeft_alle_autorisaties = True
